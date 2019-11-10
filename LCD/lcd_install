@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# This script is used to install all the necessary dependencies necessary
+# to run a digole 2 inch lcd alongside svxlink for a real time display of
+# svxlink status.
+
+# SCRIPT CONTRIBUTORS:
+# Aaron Crawford (N3MBH), Dan Loranger (KG7PAR)
+
+#Install the needed support applications
+
+apt-get install python-smbus python-pigpio python-pip RPi.GPIO
+
+pip install inotify
+
+# Enable pigpio daemon
+sudo systemctl enable pigpiod
+
+#sudo apt-get install python3-smbus python3-pigpio  python-pip
+#sudo pip3 install inotify
+
+# mak the LCD service executable
+sudo chmod +x LCD
+
+#move the LCD file to have it run automatically at boot
+sudo mv ./LCD /etc/init.d/
+cd /etc/init.d
+sudo update-rc.d LCD defaults
+
