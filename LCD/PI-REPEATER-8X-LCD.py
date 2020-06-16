@@ -158,19 +158,21 @@ def lcd_set_foreground (ADDRESS,color):
   bus.write_i2c_block_data(ADDRESS, 0, lst)
   return 0 
 def get_ip_address():
-  #s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+  try:#s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
   #s.connect(("8.8.8.8", 80))
   #ip=s.getsockname()[0]
   #s.close
   #~~~
-  ip = os.system('hostname -I > /tmp/ip.txt')
-  pi = pigpio.pi()
-  with open('/tmp/ip.txt', 'rb') as f:
-    data = f.read()
-  os.system('rm -f /tmp/ip.txt')
-  #~~~
-  #ip = socket.gethostbyname(hostname) 
-  return str(data)  
+    ip = os.system('hostname -I > /tmp/ip.txt')
+    pi = pigpio.pi()
+    with open('/tmp/ip.txt', 'rb') as f:
+      data = f.read()
+    os.system('rm -f /tmp/ip.txt')
+    #~~~
+    #ip = socket.gethostbyname(hostname) 
+    return str(data)
+  finally:
+    return "X.X.X.X" 
 def get_interface_ipaddress(network):
   s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
   return socket.inet_ntoa(fcntl.ioctl(
@@ -213,8 +215,11 @@ def lcd_write_ip_address(ADDRESS):
         break
     finally:
 	  pass
-  lcd_write_text(ADDRESS,message[0:29])
-  lcd_write_line(ADDRESS,message[29::])
+  try:
+	lcd_write_text(ADDRESS,message[0:29])
+	lcd_write_line(ADDRESS,message[29::])
+  finally:
+    pass
 		
 def lcd_load_image(ADDRESS,fileName):
   pi = pigpio.pi()              # use defaults
