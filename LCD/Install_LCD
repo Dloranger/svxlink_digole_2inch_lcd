@@ -1,8 +1,0 @@
-
-sudo apt-get install python3-smbus python3-pigpio RPi.GPIO python-pip
-sudo pip3 install inotify
-sudo chmod +x LCD
-sudo mv ./LCD /etc/init.d/
-cd /etc/init.d
-sudo update-rc.d LCD defaults
-sudo systemctl enable pigpiod

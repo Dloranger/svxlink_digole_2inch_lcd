@@ -10,24 +10,25 @@
 #Install the needed support applications
 
 apt-get install python-smbus python-pigpio python-pip RPi.GPIO
-apt-get install python3-smbus python3-pigpio RPi.GPIO python-pip 
 
 pip install inotify
-pip3 install inotify
 
 # Enable pigpio daemon
-sudo systemctl enable pigpiod
+ systemctl enable pigpiod
 
-#sudo apt-get install python3-smbus python3-pigpio  python-pip
-#sudo pip3 install inotify
+# apt-get install python3-smbus python3-pigpio  python-pip
+# pip3 install inotify
 
-# make sure the LCD service is executable
-sudo chmod +x LCD
-# make sure the LCD script is executable
-sudo chmod +x PI-REPEATER-8X.py
+# mak the LCD service executable
+ chmod +x LCD
+
+#move the python script into the expected location, make it executable
+ cp PI-REPEATER-8X-LCD.py /usr/local/bin/PI-REPEATER-8X-LCD.py
+sleep 1
+ chmod +x /usr/local/bin/PI-REPEATER-8X-LCD.py
 
 #move the LCD file to have it run automatically at boot
-sudo mv ./LCD /etc/init.d/
+mv ./LCD /etc/init.d/
 cd /etc/init.d
-sudo update-rc.d LCD defaults
+update-rc.d LCD defaults
 
