@@ -9,8 +9,7 @@
 
 
 import smbus # for accessing the I2C bus
-import socket # for getting the local IP address
-import struct #for getting the local IP address
+from subprocess import check_output #for getting the local IP address
 import fcntl
 import time
 import pigpio # used for writing images to the LCD
@@ -32,6 +31,8 @@ DESIRED_DEVICE_ADDRESS = 0x28   #7 bit address (will be left shifted to add the 
 ADDRESS = DESIRED_DEVICE_ADDRESS
 # device address 0x27 conflicts with the gpio expanders, so it needs moved
 sleepInterval=0.00
+#default IP address to display 
+IP_ADDR = "xxx.xxx.xxx.xxx"
 ##################################################################
 
 import re
@@ -125,6 +126,17 @@ def lcd_clear (ADDRESS):
   lcd_set_background(ADDRESS,0)
   bus.write_i2c_block_data(ADDRESS, 0, [0x43, 0x4C])
   return 0 
+def lcd_setxy (x, y):
+  TEXT="TP"
+  lst=[]
+  for i in TEXT:
+    lst.append(ord(i)) 
+  lst.append(x)
+  lst.append(y)
+  lst.append(10)
+  lst.append(13)
+  bus.write_i2c_block_data(ADDRESS, 0, lst)
+  return 0 
 def lcd_write_line (ADDRESS,TEXT):
   TEXT="TT"+TEXT
   lst=[]
@@ -157,23 +169,6 @@ def lcd_set_foreground (ADDRESS,color):
   lst.append (color)	
   bus.write_i2c_block_data(ADDRESS, 0, lst)
   return 0 
-def get_ip_address():
-  try:#s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-  #s.connect(("8.8.8.8", 80))
-  #ip=s.getsockname()[0]
-  #s.close
-  #~~~
-    ip = os.system('hostname -I > /tmp/ip.txt')
-    pi = pigpio.pi()
-    with open('/tmp/ip.txt', 'rb') as f:
-      data = f.read()
-    os.system('rm -f /tmp/ip.txt')
-    #~~~
-    #ip = socket.gethostbyname(hostname) 
-    return str(data)
-  finally:
-    return "X.X.X.X" 
-def get_interface_ipaddress(network):
   s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
   return socket.inet_ntoa(fcntl.ioctl(
     s.fileno(),
@@ -194,30 +189,39 @@ def lcd_set_orientaion( ADDRESS, Direction ):
   bus.write_i2c_block_data(ADDRESS, 0, [0x53, 0x44, val])
   return 0
 def lcd_write_ip_address(ADDRESS):
-  Leader="IP ADDR:"
-  #try 5 times to get the IP address
-  for x in range (6):
-    try:
-      IP=get_ip_address()
-      #IP = get_interface_ipaddress('eth0')
+# setup the IP address as blue on black background
+
+	# need to paint the background to prevent text artifacts on ip changes
+  lcd_draw_filled_rectangle(ADDRESS,00,25,320,50,0x00,0x00) 
+  lcd_set_font(DESIRED_DEVICE_ADDRESS,51)  
+  lcd_set_background(DESIRED_DEVICE_ADDRESS,0)
+  lcd_set_foreground(DESIRED_DEVICE_ADDRESS,63)
+
+  Leader="IP:" 
+  lcd_setxy (0,1)
+  #time.sleep(2)
+
+  try:
+      IP = check_output(['hostname', '-I'])
       if len(IP) == 1:
-        time.sleep (x)
-        #lcd_write_text(ADDRESS,"No ADDRESS FOUND")
+        IP_ADDR = "XXX.XXX.XXX.XXX"
       else:
-        length=len(IP)
-        
-        lead_lenth=len(Leader)
-        size=25-length-lead_lenth
-        pad=""
-        for i in range (0,size-1,1):
-          pad=pad+" "
-        message=Leader+pad+IP
-        break
-    finally:
+        IP_ADDR = IP
+      
+      length=len(IP_ADDR)
+      lead_lenth=len(Leader)
+      size=15-length-lead_lenth
+      pad=""
+      for i in range (0,size-1,1):
+        pad=pad+" "
+      message=Leader+pad+IP_ADDR
+  finally:
 	  pass
   try:
-	lcd_write_text(ADDRESS,message[0:29])
-	lcd_write_line(ADDRESS,message[29::])
+	lcd_write_text(ADDRESS,message[0:31])
+	time.sleep (0.1)
+	lcd_write_line(ADDRESS,message[31::])
+	time.sleep (1)
   finally:
     pass
 		
@@ -304,10 +308,7 @@ lcd_set_foreground(DESIRED_DEVICE_ADDRESS,255)
 lcd_set_font(DESIRED_DEVICE_ADDRESS,51)
 lcd_set_position(DESIRED_DEVICE_ADDRESS,0x00,0x00)
 lcd_write_line(DESIRED_DEVICE_ADDRESS, "       PI-REPEATER-8X")
-# setup the IP address as blue on black background
-lcd_set_font(DESIRED_DEVICE_ADDRESS,51)
-lcd_set_background(DESIRED_DEVICE_ADDRESS,0)
-lcd_set_foreground(DESIRED_DEVICE_ADDRESS,63)
+
 lcd_write_ip_address(DESIRED_DEVICE_ADDRESS)
 # setup the labels for the channel indicators
 lcd_set_position(DESIRED_DEVICE_ADDRESS,14,4)
@@ -327,13 +328,14 @@ lcd_write_line(DESIRED_DEVICE_ADDRESS,"SQL")
 from_beginning = False
 notifier = inotify.adapters.Inotify()
 while True:
+  
   #print ("In the loop")
   try:
     #------------------------- check
     if not os.path.exists(logfile):
       print ('logfile does not exist')
       time.sleep(sleepInterval)
-      continue
+      continue 
     #print ('opening and starting to watch', logfile)
     #------------------------- open
     file = open(logfile, 'r')
@@ -341,6 +343,7 @@ while True:
     #------------------------- watch
     notifier.add_watch(logfile)
     try:
+	  
       for event in notifier.event_gen():
         #print (event)
         if event is not None:
@@ -356,6 +359,12 @@ while True:
             for line in file.readlines():
               process(line, history=False)
               #print (line)
+        else:
+			# try to update the IP address should it become available
+            IP = check_output(['hostname', '-I'])
+            if (IP_ADDR != IP) :
+                lcd_write_ip_address(DESIRED_DEVICE_ADDRESS)
+                IP_ADDR = IP				
     except (KeyboardInterrupt, SystemExit):
       raise
     except:
