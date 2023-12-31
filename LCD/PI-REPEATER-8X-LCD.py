@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This script is used to drive the digole 2 inch
 # LCD to display the status of the control signals
@@ -64,6 +64,8 @@ def lcd_set_address (ADDRESS):
   lst.append (ADDRESS)	
   try:
     bus.write_i2c_block_data(DEFAULT_DEVICE_ADDRESS, 0, lst)
+  except Exception as err:
+    print(err)
   finally:
     time.sleep(1)
     return 0  
@@ -206,8 +208,10 @@ def lcd_write_ip_address(ADDRESS):
       if len(IP) == 1:
         IP_ADDR = "XXX.XXX.XXX.XXX"
       else:
-        IP_ADDR = IP
-      
+        IP_ADDR = str(IP).split()
+        #print (IP_ADDR[0])        
+        IP_ADDR = (IP_ADDR[0])[2:]
+        #print (IP_ADDR)        
       length=len(IP_ADDR)
       lead_lenth=len(Leader)
       size=15-length-lead_lenth
@@ -216,14 +220,14 @@ def lcd_write_ip_address(ADDRESS):
         pad=pad+" "
       message=Leader+pad+IP_ADDR
   finally:
-	  pass
+      pass
   try:
-	lcd_write_text(ADDRESS,message[0:31])
-	time.sleep (0.1)
-	lcd_write_line(ADDRESS,message[31::])
-	time.sleep (1)
+      lcd_write_text(ADDRESS,message[0:31])
+      time.sleep (0.1)
+      lcd_write_line(ADDRESS,message[31::])
+      time.sleep (1)
   finally:
-    pass
+     pass
 		
 def lcd_load_image(ADDRESS,fileName):
   pi = pigpio.pi()              # use defaults
